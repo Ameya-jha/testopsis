@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050505">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <title>Tell: face and posture tracker</title>
+  <link rel="icon" id="favicon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23050505'/%3E%3Ctext x='50' y='72' font-size='64' text-anchor='middle' fill='%23efeee8' font-family='sans-serif' font-weight='900'%3ET%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Martian+Mono:wdth,wght@75..112,100..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="mobile.css">
+  <link rel="stylesheet" href="intro.css">
+</head>
+<body>
+  <!-- Welcome sequence (intro.js). Removed automatically if anything goes wrong. -->
+  <div id="intro" class="intro on" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+    <div class="intro-lines" aria-hidden="true">
+      <i class="v" style="left:25%;animation-delay:.05s"></i><i class="v" style="left:50%;animation-delay:.15s"></i><i class="v" style="left:75%;animation-delay:.25s"></i>
+      <i class="h" style="top:33%;animation-delay:.1s"></i><i class="h" style="top:66%;animation-delay:.2s"></i>
+    </div>
+    <button type="button" class="link-btn intro-skip" id="introSkip">Skip</button>
+    <div class="intro-inner" id="introInner"></div>
+  </div>
+  <script>setTimeout(function () { var e = document.getElementById("intro"); if (e && !e.dataset.ready) { e.remove(); var a = document.querySelector(".app"); if (a) a.removeAttribute("inert"); document.documentElement.classList.remove("intro-open"); } }, 5000);</script>
+
+  <main class="app">
+    <header class="masthead">
+      <h1 class="wordmark">Tell</h1>
+      <p class="tagline">Reads your face, mood and posture through the webcam, and keeps reading when you switch tabs. Video is processed on this device and never uploaded.</p>
+      <div class="mast-status">
+        <div class="stat-box"><span>Status</span><b id="statusText">Idle</b></div>
+        <div class="stat-box"><span>Session</span><b id="sessionClock">00:00:00</b></div>
+        <div class="stat-box"><span>Vault</span><b id="vaultStat">Locked</b></div>
+      </div>
+    </header>
+
+    <div class="lattice">
+
+      <!-- Camera -->
+      <section class="cell span-8 stage-cell" aria-label="Camera">
+        <div class="stage" id="stage">
+          <video id="video" playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <div class="placeholder" id="placeholder"><p id="message">Camera is off. Press Start camera to begin.</p></div>
+          <div class="calib" id="calib" hidden>
+            <b id="calibCount">3</b>
+            <span id="calibText">Sit up straight and look at the screen</span>
+          </div>
+          <div class="chips">
+            <span class="chip" id="faceCount">0 faces</span>
+            <span class="chip" id="fps">0 fps</span>
+          </div>
+          <div class="toasts" id="toasts" aria-live="polite"></div>
+        </div>
+        <div class="controls">
+          <button class="btn primary" id="toggleBtn">Start camera</button>
+          <button class="btn" id="calibBtn" disabled>Calibrate posture</button>
+          <button class="btn" id="pipBtn">Pop out HUD</button>
+          <button class="btn" id="csvBtn">Export CSV</button>
+          <button class="btn" id="fsBtn">Fullscreen</button>
+        </div>
+      </section>
+
+      <!-- Current emotion: the one loud cell -->
+      <section class="cell span-4 mood" id="moodCell" aria-label="Current emotion">
+        <div class="mood-top">
+          <span class="cap">Right now</span>
+          <span class="mood-emoji" id="moodEmoji">😐</span>
+        </div>
+        <div class="mood-word" id="moodWord">Idle</div>
+        <div class="mood-meta">
+          <span><b id="moodInt">--</b>% intensity</span>
+          <span id="moodNote">Start the camera</span>
+        </div>
+        <ul class="emo-list" id="emoList"></ul>
+      </section>
+
+      <!-- Posture -->
+      <section class="cell span-5" id="postureCell" aria-label="Posture">
+        <div class="cell-head"><h2>Posture</h2><span class="cap" id="postureState">Not calibrated</span></div>
+        <div class="posture-top">
+          <div class="score" id="scoreWrap"><b id="postureScore">--</b><span>/100</span></div>
+          <canvas id="postureCanvas" class="posture-canvas"></canvas>
+        </div>
+        <p class="issue" id="postureIssue">Start the camera and sit so your shoulders are in frame.</p>
+        <div class="split" id="postureSplit" title="Time in good, okay and poor posture">
+          <i class="s-good"></i><i class="s-okay"></i><i class="s-poor"></i>
+        </div>
+        <div class="split-key"><span>Good</span><span>Okay</span><span>Poor</span></div>
+        <div class="rows" id="postureRows"></div>
+      </section>
+
+      <!-- Head and gaze -->
+      <section class="cell span-3" aria-label="Head and gaze">
+        <div class="cell-head"><h2>Head and gaze</h2></div>
+        <div id="headMeters"></div>
+        <div class="gaze" id="gaze" aria-label="Gaze direction"><i id="gazeDot"></i></div>
+        <div class="rows" id="headRows"></div>
+      </section>
+
+      <!-- Eyes and face -->
+      <section class="cell span-4" aria-label="Eyes and expression">
+        <div class="cell-head"><h2>Eyes and expression</h2><span class="cap" id="gestureFlash"></span></div>
+        <div class="stat-grid" id="eyeStats"></div>
+        <div id="auMeters"></div>
+      </section>
+
+      <!-- Charts -->
+      <section class="cell span-8" aria-label="Emotion mix over time">
+        <div class="cell-head"><h2>Emotion mix, last 3 minutes</h2></div>
+        <div class="chart"><canvas id="streamCanvas"></canvas></div>
+        <div class="legend" id="streamLegend"></div>
+      </section>
+
+      <section class="cell span-4" aria-label="Mood map">
+        <div class="cell-head"><h2>Mood map</h2></div>
+        <div class="map"><canvas id="mapCanvas"></canvas></div>
+      </section>
+
+      <section class="cell span-8" aria-label="Posture, focus and mood over time">
+        <div class="cell-head"><h2>Posture, focus and mood</h2></div>
+        <div class="chart"><canvas id="lineCanvas"></canvas></div>
+        <div class="legend">
+          <span><i style="background:#46ffb0"></i>Posture</span>
+          <span><i style="background:#3bd5ff"></i>Focus</span>
+          <span><i style="background:#ffd43b"></i>Mood (pleasant at top)</span>
+        </div>
+      </section>
+
+      <section class="cell span-4" aria-label="Session summary">
+        <div class="cell-head"><h2>This session</h2></div>
+        <div class="stat-grid" id="sessionStats"></div>
+        <div class="emo-time" id="emoTime"></div>
+      </section>
+
+      <!-- Floating HUD -->
+      <section class="cell span-4" aria-label="Mini HUD">
+        <div class="cell-head"><h2>Mini HUD</h2><span class="cap">stays on top</span></div>
+        <div class="hud-home" id="hudHome">
+          <div class="hud" id="hud">
+            <div class="hud-main">
+              <span class="hud-emoji" id="hudEmoji">😐</span>
+              <div>
+                <div class="hud-word" id="hudWord">Idle</div>
+                <div class="hud-sub" id="hudSub">no face in view</div>
+              </div>
+            </div>
+            <div class="hud-stats">
+              <div><b id="hudPosture">--</b><span>posture</span></div>
+              <div><b id="hudFocus">--</b><span>focus</span></div>
+              <div><b id="hudBlink">--</b><span>blinks/min</span></div>
+              <div><b id="hudSit">0m</b><span>sitting</span></div>
+            </div>
+            <div class="hud-alert" id="hudAlert" hidden></div>
+          </div>
+          <p class="hud-ph" id="hudPh" hidden>The HUD is floating above your other windows. Close it to bring it back here.</p>
+        </div>
+      </section>
+
+      <!-- Admin vault -->
+      <section class="cell span-4" aria-label="Admin vault">
+        <div class="cell-head"><h2>Admin vault</h2><span class="cap" id="vaultState">Not set up</span></div>
+        <p class="vault-note" id="vaultNote"></p>
+        <div class="vault-actions" id="vaultActions"></div>
+        <input type="file" id="restoreFile" accept="application/json,.json" hidden>
+      </section>
+
+      <!-- History -->
+      <section class="cell span-4" aria-label="Past sessions">
+        <div class="cell-head"><h2>Past sessions</h2><span class="cap" id="histCap"></span></div>
+        <div class="history" id="historyList"></div>
+      </section>
+
+      <!-- Settings -->
+      <section class="cell span-12" aria-label="Settings">
+        <div class="cell-head"><h2>Settings</h2><span class="cap">S start/stop · C calibrate · H HUD · L lock/unlock</span></div>
+        <div class="settings-grid">
+          <div class="group">
+            <h3>Overlay</h3>
+            <label class="check"><input type="checkbox" data-set="mesh"> Face mesh (heavier)</label>
+            <label class="check"><input type="checkbox" data-set="outline"> Eyes, brows, lips, iris</label>
+            <label class="check"><input type="checkbox" data-set="box"> Bounding box and emotion tag</label>
+            <label class="check"><input type="checkbox" data-set="skeleton"> Posture skeleton</label>
+            <label class="check"><input type="checkbox" data-set="mirror"> Mirror view</label>
+          </div>
+          <div class="group">
+            <h3>Camera and speed</h3>
+            <label class="field">Faces to track
+              <select data-set="faces" data-type="number"><option value="1">1</option><option value="2">2</option><option value="4">4</option></select>
+            </label>
+            <label class="field">Device
+              <select id="cameraSel" data-set="camera"><option value="">Default camera</option></select>
+            </label>
+            <label class="field">Performance
+              <select data-set="perf">
+                <option value="auto">Auto</option><option value="30">Smooth, 30 fps</option>
+                <option value="20">Balanced, 20 fps</option><option value="10">Eco, 10 fps</option>
+              </select>
+            </label>
+          </div>
+          <div class="group">
+            <h3>Background</h3>
+            <label class="check"><input type="checkbox" data-set="bg"> Keep tracking when this tab is hidden</label>
+            <label class="check"><input type="checkbox" data-set="wake"> Keep the screen awake</label>
+          </div>
+          <div class="group">
+            <h3>Reminders</h3>
+            <label class="check"><input type="checkbox" data-set="alerts"> Alerts for posture, tired eyes, blinking and breaks</label>
+            <label class="field">Break every
+              <select data-set="breakMin" data-type="number">
+                <option value="20">20 min</option><option value="30">30 min</option>
+                <option value="45">45 min</option><option value="60">60 min</option>
+              </select>
+            </label>
+          </div>
+          <div class="group">
+            <h3>Admin lock</h3>
+            <label class="field">Face match
+              <select data-set="faceStrict" data-type="number">
+                <option value="0.8">Strict</option><option value="1">Balanced</option><option value="1.3">Relaxed</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" data-set="autolock"> Lock the vault if my face isn't seen for 2 minutes</label>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <footer class="foot">
+      <p>The tracking library and models download from a CDN on first use, then run locally. The admin vault is an encrypted database stored in this browser only: it is sealed with your passcode (AES-256) and cannot be read without it. The face check adds a second gate but can be fooled by a good lookalike or video, so choose a passcode you can remember and nobody can guess. For background tracking use Chrome or Edge, pin this tab, and turn off Memory Saver for this site.</p>
+    </footer>
+  </main>
+
+  <dialog id="vaultDlg" class="dlg" aria-labelledby="dlgTitle">
+    <form id="vaultForm" autocomplete="off">
+      <div class="dlg-head"><h2 id="dlgTitle">Admin vault</h2><button type="button" class="link-btn" id="dlgClose">Close</button></div>
+      <div id="dlgBody"></div>
+    </form>
+  </dialog>
+
+  <script src="analysis.js"></script>
+  <script src="vault.js"></script>
+  <script src="script.js"></script>
+  <script src="mobile.js"></script>
+  <script src="intro.js"></script>
+</body>
+</html>

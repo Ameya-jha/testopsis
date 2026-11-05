@@ -1,0 +1,113 @@
+/* intro.css
+   Welcome sequence shown before the dashboard. Same visual language as style.css:
+   hard edges, stepped motion, one loud colour (--mood, cycled through the emotion palette).
+   Every animation only animates FROM a hidden state, so with reduced motion the final,
+   visible state is what you see. */
+
+html.intro-open, html.intro-open body { overflow: hidden; }
+
+.sr {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+.intro {
+  position: fixed; inset: 0; z-index: 50; display: none;
+  background: var(--ink); color: var(--bone);
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  padding: max(22px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+           max(22px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+}
+.intro.on { display: flex; }
+.intro.away { visibility: hidden; }
+.intro.leaving { animation: intro-out 0.34s steps(5, jump-none) forwards; pointer-events: none; }
+@keyframes intro-out { to { opacity: 0; clip-path: inset(0 0 100% 0); } }
+
+/* lattice lines drawing in behind everything */
+.intro-lines { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.intro-lines i { position: absolute; background: rgba(239, 238, 232, 0.13); }
+.intro-lines .v { top: 0; bottom: 0; width: 2px; transform-origin: top; animation: draw-y 0.9s steps(9, jump-none) backwards; }
+.intro-lines .h { left: 0; right: 0; height: 2px; transform-origin: left; animation: draw-x 0.9s steps(9, jump-none) backwards; }
+@keyframes draw-y { from { transform: scaleY(0); } }
+@keyframes draw-x { from { transform: scaleX(0); } }
+
+.intro-inner { position: relative; z-index: 1; margin: auto; width: min(640px, 100%); padding: 40px 0 20px; }
+.intro-skip { position: absolute; z-index: 2; top: max(12px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); }
+
+.step { animation: intro-snap 0.34s steps(4, jump-none) backwards; }
+@keyframes intro-snap {
+  0% { transform: translateX(-8px) skewX(-8deg); clip-path: inset(0 0 55% 0); }
+  45% { transform: translateX(6px); clip-path: inset(45% 0 0 0); }
+  100% { transform: none; clip-path: inset(0); }
+}
+
+/* ---- Splash ---- */
+.intro-cap { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font: 500 0.72rem var(--mono); color: var(--dim); }
+.intro-cap .rec { width: 0.62em; height: 0.62em; background: var(--bad); animation: intro-blink 1s steps(2, jump-none) infinite; }
+@keyframes intro-blink { 50% { opacity: 0.15; } }
+
+.intro-word {
+  margin: 0; font: 900 clamp(7rem, 34vw, 15rem) / 0.78 var(--display);
+  font-stretch: 62%; letter-spacing: -0.045em; color: var(--mood);
+}
+.intro-face { display: flex; align-items: center; gap: 14px; margin: 22px 0 18px; font: 600 0.8rem var(--mono); }
+.intro-emoji { font-size: 2.4rem; line-height: 1; }
+.intro-emo { color: var(--mood); min-width: 9ch; }
+.intro-line { margin: 0; min-height: 3.4em; max-width: 46ch; font: 500 0.9rem / 1.6 var(--mono); }
+.intro-line [aria-hidden="true"]::after {
+  content: ""; display: inline-block; width: 0.55em; height: 1em; margin-left: 3px;
+  vertical-align: -0.12em; background: var(--mood); animation: intro-blink 1s steps(2, jump-none) infinite;
+}
+
+/* ---- Questions ---- */
+.intro-prog { display: flex; gap: 2px; margin-bottom: 18px; }
+.intro-prog i { flex: 1; height: 8px; background: rgba(239, 238, 232, 0.2); }
+.intro-prog i.on { background: var(--mood); }
+.intro-q {
+  margin: 4px 0 10px; font: 900 clamp(2.2rem, 8.5vw, 3.8rem) / 0.92 var(--display);
+  font-stretch: 62%; letter-spacing: -0.02em; outline: none; overflow-wrap: anywhere;
+}
+.intro-q.big { font-size: clamp(2.8rem, 11vw, 5.4rem); }
+.intro-q .who { color: var(--mood); }
+.intro-hint { margin: 0 0 6px; font: 500 0.78rem / 1.5 var(--mono); color: var(--dim); }
+.intro-err { min-height: 1.5em; margin: 10px 0 0; font: 600 0.78rem / 1.5 var(--mono); color: var(--bad); }
+
+.intro-in {
+  display: block; width: 100%; margin: 14px 0 0; padding: 12px 2px; background: transparent; color: var(--bone);
+  border: 0; border-bottom: 3px solid var(--bone); border-radius: 0; outline: none;
+  font: 800 clamp(2rem, 9vw, 3.4rem) / 1.1 var(--display); font-stretch: 70%;
+}
+.intro-in::placeholder { color: rgba(239, 238, 232, 0.28); }
+.intro-in:focus { border-bottom-color: var(--mood); }
+.intro-in[aria-invalid="true"] { border-bottom-color: var(--bad); }
+
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; margin: 18px 0 4px; background: var(--bone); border: 2px solid var(--bone); }
+.opt { position: relative; display: block; background: var(--ink); cursor: pointer; }
+.opts .opt:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.opt input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.opt span { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 10px 14px; font: 600 0.84rem / 1.3 var(--mono); }
+.opt span::before { content: ""; flex: none; width: 16px; height: 16px; border: 2px solid var(--bone); }
+.opt input:checked + span { background: var(--mood); color: var(--ink); }
+.opt input:checked + span::before { background: var(--ink); border-color: var(--ink); }
+.opt input:focus-visible + span { outline: 3px solid var(--bone); outline-offset: -3px; }
+
+.intro-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 22px; }
+.intro-actions .btn.primary { flex: 1 1 auto; }
+
+/* ---- Review ---- */
+.intro-sum { margin: 16px 0 18px; border-top: 2px solid var(--bone); }
+.intro-sum div { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(239, 238, 232, 0.28); font: 500 0.82rem / 1.4 var(--mono); }
+.intro-sum dt { color: var(--dim); }
+.intro-sum dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.intro-note { margin: 0 0 4px; padding-left: 12px; border-left: 4px solid var(--mood); font: 500 0.78rem / 1.6 var(--mono); }
+.intro-lead { margin: 0 0 6px; max-width: 46ch; font: 500 0.9rem / 1.6 var(--mono); }
+
+@media (max-width: 420px) {
+  .intro-actions .btn:not(.primary) { flex: 0 0 auto; }
+  .intro-sum div { grid-template-columns: 6.2em minmax(0, 1fr); gap: 8px; }
+}
+@media (max-height: 520px) {
+  .intro-inner { padding-top: 34px; }
+  .intro-word { font-size: clamp(4rem, 24vh, 8rem); }
+  .intro-face { margin: 12px 0 10px; }
+}

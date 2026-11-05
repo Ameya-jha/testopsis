@@ -1,0 +1,128 @@
+/* mobile.css
+   Responsive layer for phones and tablets. Loaded AFTER style.css, which is not edited.
+   Every rule here is either scoped to a small screen / touch device, or reproduces the
+   existing desktop value exactly, so the laptop layout is unchanged. */
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  /* a stray pull-to-refresh would kill a live camera session */
+  overscroll-behavior-y: contain;
+}
+button, select, input, label { touch-action: manipulation; }
+video, canvas { max-width: 100%; }
+
+/* ---- Notches and rounded corners (needs viewport-fit=cover; zero on laptops) ---- */
+.app {
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(40px, env(safe-area-inset-bottom));
+  padding-left: max(20px, env(safe-area-inset-left));
+}
+
+/* ---- Dialog: never taller than the screen, scrolls inside itself ---- */
+.dlg {
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ---- Touch devices: bigger targets, no sticky hover ---- */
+@media (pointer: coarse) {
+  .btn { min-height: 46px; }
+  .btn.sm { min-height: 44px; }
+  .link-btn { min-height: 44px; padding: 0 8px; display: inline-flex; align-items: center; }
+  .check { min-height: 44px; align-items: center; padding: 6px 0; }
+  .check input { width: 24px; height: 24px; margin: 0; }
+  .check input:checked::after { width: 12px; height: 12px; }
+  .field { min-height: 44px; }
+  /* 16px stops iOS from zooming the page when a field is focused */
+  select, .dlg input[type="password"], .dlg input[type="text"] { font-size: 16px; }
+  select { min-height: 44px; padding: 8px 10px; }
+  .hist-acts { gap: 8px; }
+}
+@media (hover: none) {
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--bone); }
+  .btn.primary:hover:not(:disabled) { background: var(--mood); color: var(--ink); transform: none; box-shadow: 4px 4px 0 var(--bone); }
+  .btn.primary.stop:hover:not(:disabled) { background: var(--ink); color: var(--bad); box-shadow: 4px 4px 0 var(--bad); }
+  .btn.danger:hover:not(:disabled) { background: var(--ink); color: var(--bad); }
+  .btn:active:not(:disabled) { background: var(--bone); color: var(--ink); }
+  .btn.primary:active:not(:disabled) { background: var(--mood); color: var(--ink); transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--bone); }
+  .btn.danger:active:not(:disabled) { background: var(--bad); color: var(--ink); }
+}
+
+/* ---- Camera stage: follow the real camera shape on portrait phones and tablets ---- */
+@media (orientation: portrait) and (max-width: 1100px) and (pointer: coarse),
+       (orientation: portrait) and (max-width: 700px) {
+  .stage {
+    aspect-ratio: var(--vid-ar, 3 / 4);   /* --vid-ar is set by mobile.js from the live video */
+    max-height: 70vh;
+    max-height: 70dvh;
+  }
+}
+.stage:fullscreen { max-height: none; aspect-ratio: auto; }
+
+/* ---- Phones ---- */
+@media (max-width: 700px) {
+  .app {
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+    padding-left: max(10px, env(safe-area-inset-left));
+  }
+  .masthead { gap: 12px; padding-bottom: 14px; }
+  .wordmark { font-size: clamp(4.2rem, 24vw, 6.5rem); }
+  .tagline { max-width: none; font-size: 0.92rem; }
+  .stat-box b { font-size: 0.8rem; white-space: normal; overflow-wrap: anywhere; }
+  .stat-box span { font-size: 0.64rem; }
+
+  .cell-head { flex-wrap: wrap; row-gap: 4px; }
+  .cell-head h2 { font-size: 1.25rem; }
+
+  .controls { gap: 10px; padding: 12px; }
+  .controls .btn { flex: 1 1 calc(50% - 10px); padding-inline: 8px; }
+  .controls #toggleBtn { flex-basis: 100%; }
+
+  /* toasts sit above the chips instead of over them */
+  .toasts { left: 8px; right: 8px; bottom: 36px; max-width: none; }
+
+  .mood-word { font-size: clamp(3.4rem, 19vw, 5.6rem); }
+  .stat b { font-size: 1.6rem; }
+  .hud-word { font-size: 2.3rem; }
+  .et { grid-template-columns: 96px minmax(0, 1fr) auto; }
+  .settings-grid { grid-template-columns: 1fr; }
+  .field select { max-width: 60%; }
+  .history { -webkit-overflow-scrolling: touch; }
+
+  .dlg { width: calc(100vw - 20px); }
+  .dlg form { padding: 16px; }
+  .dlg-head h2 { font-size: 1.7rem; }
+  .foot p { font-size: 0.7rem; }
+}
+
+/* ---- Small phones (iPhone SE, Galaxy Fold cover screen, etc.) ---- */
+@media (max-width: 380px) {
+  .app { padding-right: max(8px, env(safe-area-inset-right)); padding-left: max(8px, env(safe-area-inset-left)); }
+  .cell { padding: 12px; }
+  .wordmark { font-size: clamp(3.6rem, 26vw, 5rem); }
+  .mood-meta { flex-direction: column; gap: 2px; }
+  .emo-list li { grid-template-columns: 20px 76px minmax(0, 1fr) 34px; gap: 6px; }
+  .meter { grid-template-columns: 66px minmax(0, 1fr) 70px; gap: 8px; }
+  .hud-stats b { font-size: 1.35rem; }
+  .hud-stats span { font-size: 0.56rem; }
+  .stat span { font-size: 0.6rem; }
+  .et { grid-template-columns: 84px minmax(0, 1fr) auto; }
+  .hist { gap: 8px; }
+}
+
+/* ---- Landscape phones: keep the controls on screen ---- */
+@media (orientation: landscape) and (max-height: 520px) {
+  .stage { max-height: calc(100vh - 96px); max-height: calc(100dvh - 96px); }
+  .wordmark { font-size: clamp(3.5rem, 12vw, 6rem); }
+  .masthead { padding-bottom: 12px; }
+  .scan-video { aspect-ratio: 16 / 9; max-height: 44vh; max-height: 44dvh; }
+  .calib b { font-size: clamp(4rem, 18vh, 7rem); }
+}
+.stage:fullscreen { max-height: none; }
